@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <title>১ মিনিটের পাজেল চ্যালেঞ্জ</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #ff9800;
+      display: flex;
+      justify-content: center;
+      padding: 20px;
+    }
+    .wrapper {
+      max-width: 900px;
+      width: 100%;
+      color: #222;
+    }
+    h1 {
+      text-align: center;
+      margin: 0 0 10px;
+    }
+    .top-bar {
+      text-align: center;
+      margin-bottom: 10px;
+      font-weight: bold;
+      font-size: 18px;
+    }
+    #timer {
+      font-size: 28px;
+      color: #e53935;
+      margin-left: 8px;
+    }
+    #moves {
+      font-size: 16px;
+      margin-left: 12px;
+      color: #1a237e;
+    }
+    .layout {
+      display: flex;
+      gap: 15px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .box {
+      background: #fff;
+      border-radius: 12px;
+      padding: 12px 14px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.18);
+    }
+    .info-box {
+      width: 220px;
+      font-size: 14px;
+      text-align: left;
+    }
+    .game-box {
+      min-width: 360px;
+      text-align: center;
+    }
+    .winners-box {
+      width: 200px;
+      font-size: 14px;
+      text-align: left;
+    }
+    .game-main {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .grid {
+      width: 300px;
+      height: 300px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 3px;
+    }
+    .cell {
+      width: 100px;
+      height: 100px;
+      border-radius: 6px;
+      overflow: hidden;
+      background-size: 300px 300px;
+      background-repeat: no-repeat;
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+    .cell:hover {
+      transform: scale(1.03);
+    }
+    .cell.empty {
+      background: #ffe0b2;
+      cursor: default;
+    }
+    .disabled .cell {
+      cursor: default;
+    }
+    .reference {
+      text-align: center;
+      font-size: 12px;
+    }
+    .reference img {
+      width: 150px;
+      height: 150px;
+      border-radius: 10px;
+      object-fit: cover;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    }
+    .message {
+      margin-top: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      min-height: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <h1>১ মিনিটের পাজেল চ্যালেঞ্জ</h1>
+
+    <div class="top-bar">
+      সময় বাকি: <span id="timer">৬০</span> সেকেন্ড
+      <span id="moves">মুভ: ০</span>
+    </div>
+
+    <div class="layout">
+      <!-- Instruction Box -->
+      <div class="box info-box">
+        <h3 style="margin-top:0;">নির্দেশনা</h3>
+        <p>⬤ টুকরোগুলো ক্লিক করে ফাঁকা ঘরের সাথে অদলবদল করুন।</p>
+        <p>⬤ পাশে থাকা রেফারেন্স ছবিটি দেখে মিলিয়ে নিন।</p>
+        <p>⬤ ৬০ সেকেন্ডের মধ্যে সম্পূর্ণ মিলালে আপনি জয়ী।</p>
+        <hr>
+        <p>মিলে গেলেই পার্সেল চার্জ ফ্রি এবং ২ কি.মি এর মধ্যে ডেলিভারি চার্জ ফ্রি।</p>
+        <p>(২ কি.মি এর বাইরে শুধু ডেলিভারি চার্জ প্রযোজ্য)</p>
+      </div>
+
+      <!-- Game Box -->
+      <div class="box game-box">
+        <h3 style="margin-top:0;">পাজেল গেম</h3>
+        <div class="game-main">
+          <div id="grid" class="grid"></div>
+          <div class="reference">
+            <p>রেফারেন্স ছবি</p>
+            <img src="puzzle.jpg" alt="Reference">
+          </div>
+        </div>
+        <div id="message" class="message"></div>
+      </div>
+
+      <!-- Winners Box -->
+      <div class="box winners-box">
+        <h3 style="margin-top:0;">বিজয়ীদের তালিকা</h3>
+        <ol id="winnerList">
+          <li>Ayeham</li>
+          <li>Saleh</li>
+          <li>Zarif</li>
+          <li>Ayerah</li>
+          <li>Prince</li>
+        </ol>
+        <p style="font-size:12px;color:#555;">* ডেমো ডাটা। আসল গেমে এখানে রিয়েল বিজয়ীদের আইডি থাকবে।</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // -------- CONFIG --------
+    const GRID_SIZE = 3;
+    const TILE_COUNT = GRID_SIZE * GRID_SIZE;      // 9
+
+    // Empty tile is the one whose value is 2, so in solved state it sits at index 2 (top-right)
+    const EMPTY_TILE = 2;
+
+    const TIME_LIMIT = 60;                        // seconds
+    const SCRAMBLE_MOVES = 15;                    // difficulty: number of legal moves used to scramble
+
+    // Solved: [0,1,2,3,4,5,6,7,8]; tile "2" is the blank one
+    const solvedState = Array.from({ length: TILE_COUNT }, (_, i) => i);
+
+    const gridEl = document.getElementById('grid');
+    const timerEl = document.getElementById('timer');
+    const messageEl = document.getElementById('message');
+    const movesEl = document.getElementById('moves');
+
+    let state = [];
+    let timeLeft = TIME_LIMIT;
+    let timerId = null;
+    let gameFinished = false;
+    let moveCount = 0;
+
+    // ---- Helpers for coordinates ----
+    function indexToRowCol(index) {
+      return {
+        row: Math.floor(index / GRID_SIZE),
+        col: index % GRID_SIZE
+      };
+    }
+
+    function areAdjacent(i1, i2) {
+      const a = indexToRowCol(i1);
+      const b = indexToRowCol(i2);
+      const dr = Math.abs(a.row - b.row);
+      const dc = Math.abs(a.col - b.col);
+      return dr + dc === 1;
+    }
+
+    function getNeighbors(index) {
+      const n = [];
+      const { row, col } = indexToRowCol(index);
+      if (row > 0) n.push(index - GRID_SIZE);
+      if (row < GRID_SIZE - 1) n.push(index + GRID_SIZE);
+      if (col > 0) n.push(index - 1);
+      if (col < GRID_SIZE - 1) n.push(index + 1);
+      return n;
+    }
+
+    function isSolved(arr) {
+      return arr.every((v, i) => v === solvedState[i]);
+    }
+
+    // -------- Create controlled-difficulty state --------
+    function createScrambledState() {
+      let arr = solvedState.slice();
+      let emptyIndex = arr.indexOf(EMPTY_TILE);
+
+      for (let k = 0; k < SCRAMBLE_MOVES; k++) {
+        const neighbors = getNeighbors(emptyIndex);
+        const target = neighbors[Math.floor(Math.random() * neighbors.length)];
+        [arr[emptyIndex], arr[target]] = [arr[target], arr[emptyIndex]];
+        emptyIndex = target;
+      }
+
+      // extremely rare: might end up solved again
+      if (isSolved(arr)) return createScrambledState();
+      return arr;
+    }
+
+    // -------- Rendering --------
+    function drawBoard() {
+      gridEl.innerHTML = '';
+      state.forEach((tile, cellIndex) => {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        if (tile === EMPTY_TILE) {
+          cell.classList.add('empty');
+        } else {
+          const originalRow = Math.floor(tile / GRID_SIZE);
+          const originalCol = tile % GRID_SIZE;
+          const size = 100 * GRID_SIZE; // 300
+          cell.style.backgroundImage = "url('puzzle.jpg')";
+          cell.style.backgroundSize = size + 'px ' + size + 'px';
+          cell.style.backgroundPosition =
+            (-originalCol * 100) + 'px ' + (-originalRow * 100) + 'px';
+          cell.dataset.index = cellIndex;
+          cell.addEventListener('click', onTileClick);
+        }
+        gridEl.appendChild(cell);
+      });
+
+      if (gameFinished) {
+        gridEl.classList.add('disabled');
+      } else {
+        gridEl.classList.remove('disabled');
+      }
+    }
+
+    function onTileClick(e) {
+      if (gameFinished) return;
+
+      const clickedIndex = Number(e.currentTarget.dataset.index);
+      const emptyIndex = state.indexOf(EMPTY_TILE);
+
+      if (!areAdjacent(clickedIndex, emptyIndex)) return;
+
+      [state[clickedIndex], state[emptyIndex]] =
+        [state[emptyIndex], state[clickedIndex]];
+
+      moveCount++;
+      movesEl.textContent = 'মুভ: ' + moveCount;
+
+      drawBoard();
+
+      if (isSolved(state)) {
+        finishGame(true);
+      }
+    }
+
+    // -------- Timer & finishing --------
+    function startTimer() {
+      timerId = setInterval(() => {
+        timeLeft--;
+        timerEl.textContent = timeLeft;
+        if (timeLeft <= 0) {
+          finishGame(false);
+        }
+      }, 1000);
+    }
+
+    function finishGame(won) {
+      if (gameFinished) return;
+      gameFinished = true;
+      clearInterval(timerId);
+      drawBoard(); // lock further interaction
+
+      if (won) {
+        messageEl.textContent = 'অভিনন্দন! আপনি সময়ের মধ্যে পাজেল সমাধান করেছেন 🎉';
+      } else {
+        messageEl.textContent = 'সময় শেষ! পরেরবার আরো দ্রুত চেষ্টা করুন ⏰';
+      }
+
+      gridEl.classList.add('disabled');
+    }
+
+    // -------- Init --------
+    function initGame() {
+      state = createScrambledState();
+      timeLeft = TIME_LIMIT;
+      moveCount = 0;
+      timerEl.textContent = timeLeft;
+      movesEl.textContent = 'মুভ: 0';
+      drawBoard();
+      startTimer();
+    }
+
+    initGame();
+  </script>
+</body>
+</html>
