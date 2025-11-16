@@ -159,7 +159,7 @@
     const EMPTY_TILE = 2;
 
     const TIME_LIMIT = 60;                         // seconds
-    const SCRAMBLE_MOVES = 6;                      // exactly 6 legal moves from solved
+    const SCRAMBLE_MOVES = 15;                     // exactly 15 legal moves from solved
 
     // Solved: [0,1,2,3,4,5,6,7,8]; tile "2" is the blank one
     const solvedState = Array.from({ length: TILE_COUNT }, (_, i) => i);
@@ -191,14 +191,25 @@
       return dr + dc === 1;
     }
 
-    // -------- Deterministic 6-move scramble from solved --------
-    // Starting from EMPTY at (0,2), sequence is:
-    // down → down → left → left → up → right
+    // -------- Deterministic 15-move scramble from solved --------
+    // Starting from EMPTY at (0,2) in solved state.
+    // This sequence is 15 valid moves, hence reachable from solved → solvable.
+    //
+    // down → down → left → left → up → right → down → right → up → left → down → left → up → right → down
     function createScrambledState() {
       let arr = solvedState.slice();
       let emptyIndex = arr.indexOf(EMPTY_TILE);
 
-      const moves = ['down', 'down', 'left', 'left', 'up', 'right'];
+      const moves = [
+        'down','down',
+        'left','left',
+        'up','right',
+        'down','right',
+        'up','left',
+        'down','left',
+        'up','right',
+        'down'
+      ];
 
       for (let i = 0; i < SCRAMBLE_MOVES; i++) {
         const dir = moves[i];
@@ -216,12 +227,14 @@
         }
 
         if (target !== null) {
-          [arr[emptyIndex], arr[target]] = [arr[target], arr[emptyIndex]];
+          const tmp = arr[emptyIndex];
+          arr[emptyIndex] = arr[target];
+          arr[target] = tmp;
           emptyIndex = target;
         }
       }
 
-      // This state is exactly 6 legal moves from solved → always solvable, very easy
+      // This configuration is produced by 15 legal moves from solved → guaranteed solvable.
       return arr;
     }
 
@@ -262,8 +275,9 @@
 
       if (!areAdjacent(clickedIndex, emptyIndex)) return;
 
-      [state[clickedIndex], state[emptyIndex]] =
-        [state[emptyIndex], state[clickedIndex]];
+      const tmp = state[clickedIndex];
+      state[clickedIndex] = state[emptyIndex];
+      state[emptyIndex] = tmp;
 
       moveCount++;
       movesEl.textContent = 'মুভ: ' + moveCount;
